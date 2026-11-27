@@ -1,0 +1,63 @@
+# HC-DPO: DPO with a hard KL budget. Identical to dpo.yaml except for the block below.
+#   python -m hcdpo.train --config configs/hcdpo.yaml --set epsilon=2.0 seed=42
+
+method: hcdpo
+model_name: Qwen/Qwen2.5-0.5B-Instruct
+seed: 42
+output_dir: outputs
+run_name: null                           # null -> built from method, epsilon and seed
+
+# Constraint: KL(policy || reference) <= epsilon, in nats per response (same units as the KL estimate)
+epsilon: null                            # required; choose from the KL range of the DPO beta sweep
+lambda_init: 0.1                         # starting multiplier; plays the role of DPO's beta
+dual_lr: 0.05                            # the knob to tune if KL overshoots or is slow to settle
+lambda_min: 0.01
+lambda_max: 5.0
+dual_update_every: 10                    # optimizer steps between KL estimates / lambda updates
+
+beta: null                               # unused: lambda takes its place
+
+# Optimisation
+lr: 5.0e-5
+weight_decay: 0.0
+batch_size: 8                            # 16 does not fit in an L4's 22 GB
+grad_accum_steps: 4                      # effective batch size 32
+num_epochs: 2
+max_steps: null
+warmup_steps: 30
+lr_schedule: constant
+max_grad_norm: 1.0
+
+log_every: 10
+save_every: 100
+
+kl_eval_every: 25                        # unused in hcdpo: the dual update's KL estimate is the one logged
+kl_num_samples: 2
+max_new_tokens: 128
+
+lora:
+  r: 16
+  alpha: 32
+  dropout: 0.05
+  target_modules: [q_proj, k_proj, v_proj, o_proj]
+
+data:
+  dir: data/hh_helpful_base
+  seed: 0
+  max_prompt_tokens: 256
+  max_response_tokens: 256
+  n_train: 10000
+  n_kl_prompts: 32
+  n_eval_pairs: 500
+  n_gen_prompts: 300
+
+eval:
+  batch_size: 32
+  gen_seed: 1234
+  reward_model: OpenAssistant/reward-model-deberta-v3-large-v2
+  n_table_rows: 50
+
+wandb:
+  enabled: true
+  project: hc-dpo
+  entity: null

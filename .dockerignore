@@ -1,0 +1,7 @@
+.git
+data
+outputs
+wandb
+notebooks
+**/__pycache__
+.venv

@@ -1,0 +1,54 @@
+# Tiny end-to-end run for a laptop CPU: 64 pairs, 10 steps, tiny eval.
+# Uses its own data directory so it never overwrites the real subsets.
+
+method: dpo
+model_name: Qwen/Qwen2.5-0.5B-Instruct
+seed: 42
+output_dir: outputs/debug
+run_name: null
+
+beta: 0.1
+
+lr: 5.0e-5
+weight_decay: 0.0
+batch_size: 4
+grad_accum_steps: 1
+num_epochs: 1
+max_steps: 10
+warmup_steps: 2
+lr_schedule: constant
+max_grad_norm: 1.0
+
+log_every: 1
+save_every: 5
+
+kl_eval_every: 5
+kl_num_samples: 1
+max_new_tokens: 16
+
+lora:
+  r: 16
+  alpha: 32
+  dropout: 0.05
+  target_modules: [q_proj, k_proj, v_proj, o_proj]
+
+data:
+  dir: data/debug
+  seed: 0
+  max_prompt_tokens: 256
+  max_response_tokens: 256
+  n_train: 64
+  n_kl_prompts: 4
+  n_eval_pairs: 16
+  n_gen_prompts: 8
+
+eval:
+  batch_size: 4
+  gen_seed: 1234
+  reward_model: OpenAssistant/reward-model-deberta-v3-large-v2
+  n_table_rows: 8
+
+wandb:
+  enabled: false
+  project: hc-dpo
+  entity: null

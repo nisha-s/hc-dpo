@@ -1,0 +1,58 @@
+# Standard DPO baseline. Any key can be overridden on the command line:
+#   python -m hcdpo.train --config configs/dpo.yaml --set beta=0.25 seed=43 wandb.enabled=false
+
+method: dpo
+model_name: Qwen/Qwen2.5-0.5B-Instruct   # or Qwen/Qwen2.5-1.5B-Instruct
+seed: 42
+output_dir: outputs                      # on Colab, point this at Google Drive
+run_name: null                           # null -> built from method, beta and seed
+
+# DPO
+beta: 0.1
+
+# Optimisation
+lr: 5.0e-5
+weight_decay: 0.0
+batch_size: 8                            # 16 does not fit in an L4's 22 GB
+grad_accum_steps: 4                      # effective batch size 32
+num_epochs: 2                            # about 625 optimizer steps on 10,000 pairs
+max_steps: null                          # if set, stops early after this many optimizer steps
+warmup_steps: 30
+lr_schedule: constant                    # constant | linear (both after linear warmup)
+max_grad_norm: 1.0
+
+# Logging and checkpoints (all in optimizer steps)
+log_every: 10
+save_every: 100
+
+# KL monitoring during training
+kl_eval_every: 25
+kl_num_samples: 2                        # samples per prompt
+max_new_tokens: 128                      # used for every KL estimate and for evaluation
+
+lora:
+  r: 16
+  alpha: 32
+  dropout: 0.05
+  target_modules: [q_proj, k_proj, v_proj, o_proj]
+
+data:
+  dir: data/hh_helpful_base
+  seed: 0                                # subsampling seed; independent of the training seed
+  max_prompt_tokens: 256
+  max_response_tokens: 256
+  n_train: 10000
+  n_kl_prompts: 32
+  n_eval_pairs: 500
+  n_gen_prompts: 300
+
+eval:
+  batch_size: 32
+  gen_seed: 1234                         # same for every run so generations are comparable
+  reward_model: OpenAssistant/reward-model-deberta-v3-large-v2
+  n_table_rows: 50                       # sample generations logged to W&B
+
+wandb:
+  enabled: true
+  project: hc-dpo
+  entity: null
